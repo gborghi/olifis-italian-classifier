@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Classificazione UMAP dei quesiti e problemi delle gare AIF delle Olimpiadi di Fisica, locali e di secondo livello</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js"></script>
+    <style>
+      #plot {
+        width: 100%;
+        height: 100%;
+      }
+      .dropdown {
+        margin-bottom: 15px;
+      }
+      .dropdown-menu {
+        max-height: 200px;
+        overflow-y: auto;
+      }
+      .dropdown a {
+        display: block;
+        color: blue;
+        text-decoration: underline;
+        margin: 5px 0;
+      }
+      .spinner-border {
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container mt-4">
+      <h2 class="text-center mb-4">Classificazione UMAP dei quesiti e problemi delle gare AIF delle Olimpiadi di Fisica, locali e di secondo livello</h2>
+      <div class="row">
+      <div class="column col-6">
+      <div class="dropdown">
+        <button class="btn btn-secondary dropdown-toggle" type="button" id="sheetDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+          Select Data Level
+        </button>
+        <ul class="dropdown-menu sheet" aria-labelledby="sheetDropdown">
+          <li><a class="dropdown-item" href="#" data-sheet="1livello">1livello</a></li>
+          <li><a class="dropdown-item" href="#" data-sheet="2livello">2livello</a></li>
+        </ul>
+      </div>
+      </div>
+      <div class="column col-6">
+      <div class="dropdown mb-4">
+        <button class="btn btn-secondary dropdown-toggle" type="button" id="viewDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+          Select View
+        </button>
+        <ul class="dropdown-menu view" aria-labelledby="viewDropdown">
+          <li><a class="dropdown-item" href="#" data-view="2d">2D View</a></li>
+          <li><a class="dropdown-item" href="#" data-view="3d">3D View</a></li>
+        </ul>
+      </div>
+      </div>
+      </div>
+      <div id="plot"></div>
+      <div id="dropdown" class="dropdown"></div>
+      <button id="generateQuizButton" class="btn btn-primary mt-4" style="display:none;">Generate Quiz</button>
+      <div class="d-grid mt-4">
+          <button type="submit" class="btn btn-primary" id="generateQuizButton" style="display:none;">Generate Quiz</button>
+          <div class="spinner-border text-primary mt-3" id="loadingSpinner" role="status">
+            <span class="visually-hidden">Loading...</span>
+          </div>
+      </div>
+      <div id="result" class="mt-4"></div> 
+    </div>
+    <footer class="m-3 p-3">
+      Web app e analisi dati realizzati da Giovanni Borghi, prof di matematica e fisica @ Liceo Wiligelmo, Modena. Quesiti prodotti da AIF, Associazione per l'insegnamento della Fisica, e reperibili anche sul <a href="https://www.olifis.it/index.php/problemi-olifis" target="_blank">sito delle olimpiadi di Fisica</a>.
+    </footer>
+    <script>
+      $(document).ready(function () {
+        let selectedPoints = [];
+        let currentView = '2d'; // Default view
+        var globalData = null;
+
+        function fetchAndPlot(sheetName, modifier=null) {
+          if (globalData && !modifier){
+            plotData(globalData, currentView);
+          }
+          else 
+          google.script.run.withSuccessHandler(function(data) {
+            globalData=data;
+            plotData(data, currentView);
+        }).getData(sheetName);
+        }
+
+        // Handle dropdown selection for sheet
+        $('.dropdown-menu.sheet').on('click', 'a', function () {
+          const selectedSheet = $(this).data('sheet');
+          $('#plot').empty(); // Clear the plot
+          $('#dropdown').hide(); // Hide the dropdown
+          fetchAndPlot(selectedSheet, true);
+          $("#sheetDropdown").text($(this).text()); // Update dropdown button text
+        });
+
+        // Handle dropdown selection for view
+        $('.dropdown-menu.view').on('click', 'a', function () {
+          currentView = $(this).data('view');
+          $('#plot').empty(); // Clear the plot
+          $('#dropdown').hide(); // Hide the dropdown
+          fetchAndPlot('1livello'); // Re-fetch and re-plot with the current view
+          $("#viewDropdown").text($(this).text()); // Update dropdown button text
+        });
+
+        // Initial plot for 1livello
+        fetchAndPlot('1livello');
+
+        function plotData(data, view) {
+          console.log(data);
+          const x = data.map(d => d.x);
+          const y = data.map(d => d.y);
+          const z = data.map(d => d.z);
+          const size = data.map(d => d.size);
+          const color = data.map(d => d.color);
+          const names = data.map(d => d.name+'_'+d.color);
+
+          let trace, layout;
+
+          if (view === '2d') {
+            trace = {
+              x: x,
+              y: y,
+              mode: 'markers',
+              marker: {
+                size: size.map(siz => 6 + 0.5 * Math.pow(siz - Math.min(...size), 0.5)),
+                color: color,
+                colorscale: 'Rainbow',
+                showscale: true
+              },
+              text: names,
+              hoverinfo: 'text',
+              type: 'scatter'
+            };
+            layout = {
+              title: '2D Plot',
+              dragmode: 'select',
+              margin: { l: 0, r: 0, b: 0, t: 0 }
+            };
+          } else {
+            trace = {
+              x: x,
+              y: y,
+              z: z,
+              mode: 'markers',
+              marker: {
+                size: size.map(siz => 6 + 0.5 * Math.pow(siz - Math.min(...size), 0.5)),
+                color: color,
+                colorscale: 'Rainbow',
+                showscale: true
+              },
+              text: names,
+              hoverinfo: 'text',
+              type: 'scatter3d'
+            };
+            layout = {
+              title: 'UMAP AIF -- Olimpiadi di Fisica',
+              margin: { l: 0, r: 0, b: 0, t: 0 }
+            };
+          }
+        
+          const $plot = $('#plot');
+          Plotly.newPlot('plot', [trace], layout);
+
+          // Handle point click
+          $plot[0].on('plotly_click', function (event) {
+            const pointIndex = event.points[0].pointNumber;
+            console.log(event);
+            const pointData = data[pointIndex];
+
+            const $dropdown = $('#dropdown');
+            $dropdown.empty(); // Clear existing content
+
+            // Add links to the dropdown
+            pointData.links.forEach(link => {
+              if (link) {
+                $dropdown.append(`<a href="${link}" target="_blank">${link}</a>`);
+              }
+            });
+
+            // Position and display the dropdown
+            $dropdown.css({
+              left: event.x + 'px',
+              top: event.y + 'px',
+              display: 'block'
+            });
+          });
+
+          // Hide dropdown when clicking outside
+          $('#dropdown').on('dblclick', function () {
+            $(this).hide();
+          });
+
+          // Prevent dropdown from hiding when clicked
+          $('#dropdown').on('click', function (e) {
+            e.stopPropagation();
+          });
+
+          // Handle point selection (only for 2D view)
+          if (view === '2d') {
+            $plot[0].on('plotly_selected', function (eventData) {
+              if(eventData){
+                selectedPoints = eventData.points.map(p => {
+                  const nameParts = data[p.pointIndex].name.split('_');
+                  return {
+                    year: nameParts[0],
+                    type: nameParts[1],
+                    category: nameParts[3],
+                    number: nameParts[4]
+                  };
+                });
+                console.log('Selected points:', selectedPoints);
+                if (selectedPoints.length > 0) {
+                  $('#generateQuizButton').show();
+                } else {
+                  $('#generateQuizButton').hide();
+                }
+              }
+            });
+          }
+        }
+
+        // Generate quiz on button click
+        $('#generateQuizButton').on('click', function () {
+          if (selectedPoints.length === 0) {
+            alert('No points selected!');
+            return;
+          }
+
+          $('#loadingSpinner').show();
+          $('#generateQuizButton').prop('disabled', true);
+          $('#result').empty(); // Clear previous result
+
+          google.script.run.withSuccessHandler(function (url) {
+            $('#generateQuizButton').prop('disabled', false);
+            $('#loadingSpinner').hide();
+            $('#result').html(`<div class="alert alert-success">Quiz created! <a href="${url}" target="_blank">Open Quiz</a></div>`);
+          }).generateQuizFromPoints(selectedPoints);
+        });
+      });
+    </script>
+  </body>
+</html>
