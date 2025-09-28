@@ -1,6 +1,6 @@
 # olifis-italian-classifier
-online classification of italian questions for 1st and 2nd level physics olympiads (created by AIF)
-this is a Google Apps Scripts web app, with HTML-CSS-JAVASCRIPT.
+Online classification of italian questions for 1st and 2nd level physics olympiads (created by AIF -- Associazione per l'insegnamento della Fisica).
+This is a Google Apps Scripts web app in HTML-CSS-JAVASCRIPT.
 
 The link to the UMAP classification semantic map can be found here:
 https://script.google.com/macros/s/AKfycbwY0HI_pxth1Gtx0vssaBaBPc1TkVf8GGRvABz-i1Mtv-F054eBMh52SnsjStZ13PlO/exec
